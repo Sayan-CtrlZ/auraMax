@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+pydantic-settings
+google-genai
+firebase-admin
+cloudinary
+huggingface-hub
+python-multipart
+pillow
+httpx
+python-jose[cryptography]
+passlib[bcrypt]
+email-validator
+boto3

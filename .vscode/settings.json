@@ -1,0 +1,8 @@
+{
+  "python.defaultInterpreterPath": "/home/anonymous/Desktop/auraMax/server/venv/bin/python",
+  "python.analysis.extraPaths": [
+    "/home/anonymous/Desktop/auraMax/server",
+    "/home/anonymous/Desktop/auraMax/server/venv/lib/python3.14/site-packages"
+  ],
+  "python.terminal.activateEnvironment": true
+}

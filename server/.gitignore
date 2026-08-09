@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info
+dist/
+.DS_Store
+aura-max-cd5b5-firebase-adminsdk-fbsvc-7b3a82ad77.json
