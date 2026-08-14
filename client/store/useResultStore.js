@@ -29,7 +29,94 @@ export const useResultStore = create((set, get) => ({
       });
       if (res.ok) {
         const data = await res.json();
-        set({ history: data.items || [] });
+        const items = data.items || [];
+        const normalizedItems = items.map(item => {
+          const category = item.type || item.category || "unknown";
+          const timestamp = item.created_at || item.timestamp || "";
+          
+          const rawResult = item.result || {};
+          let details = {};
+          let title = item.title || "";
+          
+          if (category === "skincare") {
+            details = {
+              ageRange: "N/A",
+              gender: "unisex",
+              climate: "N/A",
+              waterIntake: "N/A",
+              concerns: [],
+              hasRoutine: false,
+              usedProducts: [],
+              skinTriggers: [],
+              budget: "N/A",
+              additionalInfo: "",
+              skinType: "Normal",
+              concern: (rawResult.concernsIdentified && rawResult.concernsIdentified[0]) || "General Care",
+              ...rawResult
+            };
+            if (!title) {
+              const ageStr = details.ageRange && details.ageRange !== "N/A" ? `, ${details.ageRange}` : "";
+              title = `Skin Analysis (${details.gender === 'female' ? 'F' : details.gender === 'male' ? 'M' : 'NB'}${ageStr})`;
+            }
+          } else if (category === "fashion") {
+            const outfitsList = Array.isArray(rawResult) ? rawResult : (rawResult.items || rawResult.outfits || []);
+            const mappedOutfits = outfitsList.map(outfit => {
+              const links = [];
+              if (Array.isArray(outfit.pieces)) {
+                outfit.pieces.forEach(piece => {
+                  if (Array.isArray(piece.products)) {
+                    piece.products.forEach(prod => {
+                      links.push({
+                        name: `${prod.name} (${prod.price} via ${prod.source})`,
+                        url: prod.link || "#"
+                      });
+                    });
+                  }
+                });
+              }
+              return {
+                title: outfit.title,
+                links: links.length > 0 ? links : (outfit.links || [])
+              };
+            });
+            
+            details = {
+              weather: rawResult.weather || "N/A",
+              occasion: rawResult.occasion || "N/A",
+              budget: rawResult.budget || "N/A",
+              items: mappedOutfits,
+              advice: rawResult.advice || ""
+            };
+            if (!title) {
+              title = `Style Guide: ${details.occasion}`;
+            }
+          } else if (category === "hair") {
+            details = {
+              hairType: rawResult.hairType || "N/A",
+              scalpType: rawResult.scalpType || "N/A",
+              days: rawResult.days || [],
+              tips: rawResult.tips || [],
+              products: rawResult.products || [],
+              hairstyles: rawResult.hairstyles || [],
+              mode: rawResult.hairstyles ? "styling" : "care",
+              ...rawResult
+            };
+            if (!title) {
+              title = rawResult.title || "Hair Planner Concept";
+            }
+          } else {
+            details = rawResult;
+          }
+          
+          return {
+            id: item.id,
+            category,
+            timestamp,
+            title,
+            details
+          };
+        });
+        set({ history: normalizedItems });
       }
     } catch (error) {
       console.error("Failed to fetch history:", error);
