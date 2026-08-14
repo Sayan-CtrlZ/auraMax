@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { useResultStore } from "@/store/useResultStore";
-import { ShieldCheck, Upload, AlertCircle, RefreshCw, Sun, Moon, ArrowRight, Loader2, ChevronDown, Trash2, Sparkles, ClipboardList } from "lucide-react";
+import { ShieldCheck, Upload, AlertCircle, RefreshCw, Sun, Moon, ArrowRight, Loader2, ChevronDown, Trash2, Sparkles, ClipboardList, Camera } from "lucide-react";
 import GlobalLoader from "@/components/shared/GlobalLoader";
 import ProductCarousel from "@/components/shared/ProductCarousel";
 import { auth } from "@/lib/firebase";
@@ -110,6 +110,7 @@ export default function SkincarePage() {
   const [results, setResults] = useState(null);
 
   const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
   const addHistoryItem = useResultStore((state) => state.addHistoryItem);
 
   // Trigger analysis simulation
@@ -326,23 +327,53 @@ export default function SkincarePage() {
                             </button>
                           </div>
                         ) : (
-                          <div
-                            onClick={() => fileInputRef.current?.click()}
-                            className="aspect-square border-2 border-dashed border-stone-200 hover:border-amber-600/50 rounded-xl flex flex-col items-center justify-center p-6 text-center cursor-pointer transition-all bg-stone-50/50 hover:bg-stone-50"
-                          >
-                            <div className="w-12 h-12 rounded-full bg-stone-100 flex items-center justify-center text-stone-500 mb-4">
-                              <Upload size={20} />
+                          <div className="aspect-square border-2 border-dashed border-stone-200 rounded-xl flex flex-col items-center justify-center p-6 text-center bg-[#FAF6F0]/30">
+                            <div className="flex flex-col items-center w-full max-w-[240px] space-y-4">
+                              
+                              {/* Option 1: Take Photo */}
+                              <button
+                                type="button"
+                                onClick={() => cameraInputRef.current?.click()}
+                                className="w-full py-3 px-4 bg-[#8C5E3C] hover:bg-[#704A2E] text-white rounded-xl font-medium text-xs flex items-center justify-center space-x-2 transition-colors shadow-sm cursor-pointer"
+                              >
+                                <Camera size={15} />
+                                <span>Take Selfie (Camera)</span>
+                              </button>
+
+                              <div className="flex items-center w-full my-1 text-stone-400">
+                                <hr className="flex-grow border-stone-200" />
+                                <span className="px-2 text-[9px] font-medium uppercase tracking-wider text-stone-400">or</span>
+                                <hr className="flex-grow border-stone-200" />
+                              </div>
+
+                              {/* Option 2: Upload Photo */}
+                              <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                className="w-full py-3 px-4 bg-white border border-stone-300 text-stone-750 rounded-xl font-medium text-xs flex items-center justify-center space-x-2 hover:bg-stone-50 transition-colors shadow-sm cursor-pointer"
+                              >
+                                <Upload size={14} />
+                                <span>Upload from Gallery</span>
+                              </button>
+
+                              <p className="text-[10px] text-stone-450 leading-relaxed font-light pt-2">
+                                Ensure your face is centered with clear, direct lighting for accurate diagnostic results.
+                              </p>
                             </div>
-                            <h4 className="text-sm font-semibold text-stone-700">Upload your selfie</h4>
-                            <p className="text-xs text-stone-400 font-light mt-1.5 max-w-[200px]">
-                              Drag and drop or click to browse. Ensure clear, direct facial lighting.
-                            </p>
 
                             <input
                               type="file"
                               ref={fileInputRef}
                               onChange={handleImageUpload}
                               accept="image/*"
+                              className="hidden"
+                            />
+                            <input
+                              type="file"
+                              ref={cameraInputRef}
+                              onChange={handleImageUpload}
+                              accept="image/*"
+                              capture="user"
                               className="hidden"
                             />
                           </div>
