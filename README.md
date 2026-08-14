@@ -366,7 +366,7 @@ Open 🔗 [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Author & Maintainer
 
-Designed and built by **Sayan CtlZ**.
+Designed and built by **Sayan CtrlZ**.
 
 🔗 [Live Application](https://aura-max.vercel.app/)  
 🔗 [GitHub Profile](https://github.com/Sayan-CtrlZ)  
