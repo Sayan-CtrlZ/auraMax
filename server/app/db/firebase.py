@@ -13,9 +13,15 @@ logger = logging.getLogger(__name__)
 # Initialize Firebase Admin
 def init_firebase():
     if not firebase_admin._apps:
+        # Clean up invalid GOOGLE_APPLICATION_CREDENTIALS env var if file does not exist on disk
+        g_creds = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+        if g_creds and not os.path.exists(g_creds):
+            logger.warning(f"GOOGLE_APPLICATION_CREDENTIALS file '{g_creds}' not found. Clearing environment variable.")
+            os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
+
         private_key = os.getenv("FIREBASE_PRIVATE_KEY")
         client_email = os.getenv("FIREBASE_CLIENT_EMAIL")
-        project_id = os.getenv("FIREBASE_PROJECT_ID")
+        project_id = os.getenv("FIREBASE_PROJECT_ID") or os.getenv("NEXT_PUBLIC_FIREBASE_PROJECT_ID")
 
         # 1. Primary: Environment variables (Render / Cloud deployment)
         if private_key and client_email and project_id:
@@ -32,7 +38,6 @@ def init_firebase():
             return
 
         # 2. Local json file approach (only if file actually exists on disk)
-        g_creds = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
         if g_creds and os.path.exists(g_creds):
             cred = credentials.Certificate(g_creds)
             firebase_admin.initialize_app(cred)
