@@ -157,6 +157,7 @@ export default function FashionPage() {
     setResults(null);
 
     try {
+      const token = auth.currentUser ? await auth.currentUser.getIdToken() : null;
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const res = await fetch(`${API_BASE_URL}/api/v1/analyze/fashion`, {
         method: "POST",
