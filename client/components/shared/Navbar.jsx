@@ -63,15 +63,17 @@ export default function Navbar() {
   // Decide if headers should have solid background (e.g. on subpages, always scrolled look)
   const isDashboard = isMounted && isAuthenticated && pathname === "/";
   const isSubPage = pathname !== "/" || isDashboard;
-  const headerClass = (isScrolled || isSubPage)
+  const isHeaderScrolledLook = isScrolled || isSubPage || isMobileMenuOpen;
+  
+  const headerClass = isHeaderScrolledLook
     ? "top-0 border-b border-stone-200/40 bg-[#EAE0D5]/95 backdrop-blur-xl shadow-md py-2 text-stone-900"
     : "top-0 border-b border-white/10 bg-black/20 backdrop-blur-xl py-3 text-white";
 
-  const linkColorClass = (isScrolled || isSubPage)
+  const linkColorClass = isHeaderScrolledLook
     ? "text-stone-600 hover:text-brand-purple"
     : "text-stone-200 hover:text-white";
 
-  const logoColorClass = (isScrolled || isSubPage)
+  const logoColorClass = isHeaderScrolledLook
     ? "text-stone-900 font-bold"
     : "text-white font-bold";
 
@@ -86,7 +88,7 @@ export default function Navbar() {
             className="h-12 md:h-16 w-auto object-contain transition-transform duration-300 group-hover:scale-105 rounded-full" 
           />
         </Link>
-
+ 
         {/* Desktop Nav Links */}
         <nav className="hidden md:flex items-center space-x-8">
           {isMounted && navLinks.map((link) => {
@@ -109,12 +111,12 @@ export default function Navbar() {
             );
           })}
         </nav>
-
+ 
         {/* Desktop CTA / Auth Button */}
         <div className="hidden md:flex items-center space-x-4">
           {isMounted && isAuthenticated ? (
             <div className="flex items-center space-x-4">
-              <span className={cn("text-base font-medium flex items-center space-x-1.5", (isScrolled || isSubPage) ? "text-stone-700" : "text-stone-200")}>
+              <span className={cn("text-base font-medium flex items-center space-x-1.5", isHeaderScrolledLook ? "text-stone-700" : "text-stone-200")}>
                 <User size={18} className="text-brand-purple" />
                 <span>Hi, {user?.displayName?.split(' ')[0] || 'User'}</span>
               </span>
@@ -123,7 +125,7 @@ export default function Navbar() {
                 className={cn(
                   buttonVariants({ variant: "outline" }),
                   "rounded-full px-6 py-3 transition-all duration-300 font-medium text-sm flex items-center space-x-1 border-stone-350 hover:bg-stone-50",
-                  (isScrolled || isSubPage)
+                  isHeaderScrolledLook
                     ? "text-stone-700 border-stone-200 hover:text-stone-900"
                     : "text-white border-white/30 hover:bg-white/10 hover:text-white"
                 )}
@@ -138,7 +140,7 @@ export default function Navbar() {
               className={cn(
                 buttonVariants({ variant: "default" }),
                 "rounded-full h-auto px-10 py-4 transition-all duration-300 font-medium text-base text-white cursor-pointer",
-                (isScrolled || isSubPage)
+                isHeaderScrolledLook
                   ? "bg-gradient-to-r from-brand-purple to-brand-magenta hover:opacity-95 shadow-sm"
                   : "bg-white hover:bg-stone-100 text-stone-900"
               )}
@@ -147,7 +149,7 @@ export default function Navbar() {
             </button>
           )}
         </div>
-
+ 
         {/* Mobile Menu Button */}
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -155,9 +157,9 @@ export default function Navbar() {
           aria-label="Toggle menu"
         >
           {isMobileMenuOpen ? (
-            <X className={(isScrolled || isSubPage) ? "text-stone-900" : "text-white"} size={24} />
+            <X className={isHeaderScrolledLook ? "text-stone-900" : "text-white"} size={24} />
           ) : (
-            <Menu className={(isScrolled || isSubPage) ? "text-stone-900" : "text-white"} size={24} />
+            <Menu className={isHeaderScrolledLook ? "text-stone-900" : "text-white"} size={24} />
           )}
         </button>
       </div>
