@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Menu, X, User, LogOut } from "lucide-react";
-import { useResultStore } from "@/store/useResultStore";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -16,7 +16,8 @@ export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   
-  const { isAuthenticated, user, logout } = useResultStore();
+  const { user, loading, signInWithGoogle, signOut } = useAuth();
+  const isAuthenticated = !!user;
 
   // Set mounted flag to handle hydration safety with localStorage read
   useEffect(() => {
@@ -34,8 +35,8 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await signOut();
     setIsMobileMenuOpen(false);
     router.push("/");
   };
@@ -114,7 +115,7 @@ export default function Navbar() {
             <div className="flex items-center space-x-4">
               <span className={cn("text-base font-medium flex items-center space-x-1.5", (isScrolled || isSubPage) ? "text-stone-700" : "text-stone-200")}>
                 <User size={18} className="text-brand-purple" />
-                <span>Hi, {user?.name?.split(' ')[0]}</span>
+                <span>Hi, {user?.displayName?.split(' ')[0] || 'User'}</span>
               </span>
               <button
                 onClick={handleLogout}
@@ -131,18 +132,18 @@ export default function Navbar() {
               </button>
             </div>
           ) : (
-            <Link
-              href="/login"
+            <button
+              onClick={signInWithGoogle}
               className={cn(
                 buttonVariants({ variant: "default" }),
-                "rounded-full h-auto px-10 py-4 transition-all duration-300 font-medium text-base text-white",
+                "rounded-full h-auto px-10 py-4 transition-all duration-300 font-medium text-base text-white cursor-pointer",
                 (isScrolled || isSubPage)
                   ? "bg-gradient-to-r from-brand-purple to-brand-magenta hover:opacity-95 shadow-sm"
                   : "bg-white hover:bg-stone-100 text-stone-900"
               )}
             >
               Get Started
-            </Link>
+            </button>
           )}
         </div>
 
@@ -180,7 +181,7 @@ export default function Navbar() {
             <div className="pt-2 flex flex-col space-y-3">
               <div className="flex items-center space-x-2 text-stone-700 px-1 py-1 text-base font-medium">
                 <User size={20} className="text-brand-purple" />
-                <span>Logged in as <strong>{user?.name}</strong></span>
+                <span>Logged in as <strong>{user?.displayName || 'User'}</strong></span>
               </div>
               <button
                 onClick={handleLogout}
@@ -194,16 +195,18 @@ export default function Navbar() {
               </button>
             </div>
           ) : (
-            <Link
-              href="/login"
-              onClick={() => setIsMobileMenuOpen(false)}
+            <button
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                signInWithGoogle();
+              }}
               className={cn(
                 buttonVariants({ variant: "default" }),
-                "w-full h-auto bg-gradient-to-r from-brand-purple to-brand-magenta text-white rounded-full py-4 mt-2 font-medium text-base text-center"
+                "w-full h-auto bg-gradient-to-r from-brand-purple to-brand-magenta text-white rounded-full py-4 mt-2 font-medium text-base text-center cursor-pointer"
               )}
             >
               Get Started
-            </Link>
+            </button>
           )}
         </div>
       )}

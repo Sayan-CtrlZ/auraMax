@@ -80,13 +80,6 @@ export default function HairPage() {
 
   const removeCareImage = (index) => setCareImages(careImages.filter((_, i) => i !== index));
 
-  const loadCareSampleImages = () => {
-    setCareImages([
-      "/sample-selfie.webp",
-      "/sample-full-body.webp",
-      "/sample-selfie.webp"
-    ]);
-  };
 
   const handleConcernToggle = (c) => {
     if (concerns.includes(c)) setConcerns(concerns.filter(item => item !== c));
@@ -104,12 +97,6 @@ export default function HairPage() {
 
   const removeStylingImage = (index) => setStylingImages(stylingImages.filter((_, i) => i !== index));
 
-  const loadStylingSampleImages = () => {
-    setStylingImages([
-      "/hair-selfie-mock.png",
-      "/hair-outfit-mock.png"
-    ]);
-  };
 
   // =====================
   // GENERATORS
@@ -244,15 +231,7 @@ export default function HairPage() {
                 )}
               </div>
 
-              {careImages.length === 0 && (
-                <button 
-                  onClick={loadCareSampleImages}
-                  className="w-full py-3 bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium rounded-xl text-xs transition-colors flex items-center justify-center space-x-2 mt-4"
-                >
-                  <ImageIcon size={14} className="text-stone-500" />
-                  <span>Use Sample Images</span>
-                </button>
-              )}
+
             </div>
 
             <button
@@ -480,12 +459,7 @@ export default function HairPage() {
 
               <input type="file" ref={stylingFileInputRef} multiple accept="image/*" onChange={handleStylingImageUpload} className="hidden" />
 
-              {stylingImages.length === 0 && (
-                <button onClick={loadStylingSampleImages} className="w-full py-3 bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium rounded-xl text-xs transition-colors flex items-center justify-center space-x-2 mt-4">
-                  <ImageIcon size={14} className="text-stone-500" />
-                  <span>Try with Sample Context</span>
-                </button>
-              )}
+
             </div>
 
             <button
@@ -580,8 +554,19 @@ export default function HairPage() {
   return (
     <>
       <GlobalLoader isVisible={isLoading} message={mode === 'care' ? "Analyzing Scalp & Strands" : "Synthesizing Lookbook"} subMessage={mode === 'care' ? "Building your 7-day protocol..." : "Matching hair with outfit vibes..."} />
-      <div className="min-h-screen bg-[#FAF6F0] pt-28 pb-16 px-6 md:px-12">
-        <div className="max-w-7xl mx-auto space-y-10">
+      
+      {/* COMING SOON BANNER */}
+      <div className="fixed top-16 left-0 w-full bg-brand-purple text-white text-center py-4 font-bold tracking-[0.3em] text-sm md:text-base z-[100] shadow-lg uppercase">
+        🚀 Hair Planner is Coming Soon 🚀
+      </div>
+
+      <div className="min-h-screen bg-[#FAF6F0] pt-32 pb-16 px-6 md:px-12">
+        <div className="max-w-7xl mx-auto relative">
+          
+          {/* OVERLAY TO DISABLE CLICKS & ADD BLUR */}
+          <div className="absolute inset-0 z-50 bg-stone-50/40 backdrop-blur-[2px] cursor-not-allowed -mx-6 -my-6 rounded-3xl"></div>
+
+          <div className="space-y-10 opacity-60 pointer-events-none select-none filter blur-[1px]">
         
         {/* Header & Mode Switch */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-6">
@@ -758,6 +743,7 @@ export default function HairPage() {
             )}
           </div>
 
+        </div>
         </div>
       </div>
     </div>

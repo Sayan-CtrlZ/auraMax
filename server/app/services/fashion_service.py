@@ -1,53 +1,59 @@
 import asyncio
 import json
 from app.prompts.fashion_prompt import build_fashion_prompt
-from app.services.bedrock_service import analyze_image
-from app.services.image_service import generate_image
+from app.services.gemini_service import analyze_image
+from app.services.groq_service import generate_text
 from app.models.analyze import FashionOutfit, FashionPiece
 from app.clients.search import run_parallel_searches
 from app.services.validator_service import validate_products
 
 async def process_outfit_pipeline(raw_outfit: dict, context: dict, delay: float) -> FashionOutfit:
     """
-    Processes a single outfit: generates the image and finds real products in parallel.
+    Processes a single outfit: finds real products in parallel with Llama retry logic.
     Uses delay to stagger API calls.
     """
     await asyncio.sleep(delay)
     
-    img_prompt = raw_outfit.get("image_generation_prompt", f"Fashion outfit: {raw_outfit.get('title')}")
-    
-    async def get_image():
-        try:
-            base64_img = await asyncio.to_thread(generate_image, img_prompt)
-            return f"data:image/png;base64,{base64_img}"
-        except Exception as e:
-            print(f"Image generation failed: {e}")
-            return "/product_placeholder.png"
-            
     async def get_components():
-        real_pieces = []
         components = raw_outfit.get("components", [])
         
-        async def process_component(comp: dict):
+        async def process_component_with_retry(comp: dict, max_retries: int = 2):
             search_query = comp.get("search_query", f"fashion item for {comp.get('desc', 'outfit')}")
-            raw_products = await run_parallel_searches(search_query)
-            validated = await validate_products(search_query, raw_products, context, max_results=3)
-            return FashionPiece(desc=comp.get("desc", "Fashion Item"), products=validated)
+            current_query = search_query
+            desc = comp.get('desc', 'Fashion Item')
             
-        tasks = [process_component(c) for c in components]
+            for attempt in range(max_retries + 1):
+                print(f"[Outfit Tracker] 🔍 Searching SerpAPI for: '{current_query}' (Attempt {attempt + 1})")
+                raw_products = await run_parallel_searches(current_query)
+                
+                print(f"[Outfit Tracker] 🤖 Validating {len(raw_products)} raw products for '{desc}'...")
+                validated = await validate_products(current_query, raw_products, context, max_results=3)
+                
+                if validated:
+                    print(f"[Outfit Tracker] ✅ Successfully found & validated {len(validated)} products for '{desc}'")
+                    return FashionPiece(desc=desc, products=validated)
+                    
+                if attempt < max_retries:
+                    print(f"[Outfit Tracker] ⚠️ No valid products for '{desc}'. Requesting fallback query from Groq...")
+                    prompt = f"The search query '{current_query}' for fashion item '{desc}' returned no valid products. Provide a slightly broader or alternative search query. Return JSON format: {{\"new_query\": \"...\"}}"
+                    response_dict = await asyncio.to_thread(generate_text, prompt)
+                    current_query = response_dict.get("new_query", current_query)
+                    print(f"[Outfit Tracker] 🔄 Retrying search with new query: {current_query}")
+                    
+            print(f"[Outfit Tracker] ❌ Failed to find products for '{desc}' after {max_retries} retries.")
+            return FashionPiece(desc=desc, products=[])
+            
+        tasks = [process_component_with_retry(c) for c in components]
         pieces = await asyncio.gather(*tasks)
         return list(pieces)
 
-    # Run image generation and product searches in parallel
-    image_task = asyncio.create_task(get_image())
-    components_task = asyncio.create_task(get_components())
-    
-    image_url, pieces = await asyncio.gather(image_task, components_task)
+    # Run product searches
+    pieces = await get_components()
     
     return FashionOutfit(
         id=raw_outfit.get("id", 1),
         title=raw_outfit.get("title", "Outfit Concept"),
-        image=image_url,
+        image="",
         pieces=pieces
     )
 
@@ -61,11 +67,18 @@ async def analyze_fashion_stream(image_base64: str, context: dict):
     )
     
     # 1. Analyze the image to get the 4 outfit concepts
+    print("\n[Pipeline] 🧠 Submitting image and context to Gemini for style curation...")
     outfits_list = await asyncio.to_thread(analyze_image, image_base64, prompt)
+    print(f"[Pipeline] 🎯 Gemini Analysis complete.")
     
     if not isinstance(outfits_list, list):
-        if isinstance(outfits_list, dict) and "outfits" in outfits_list:
-            outfits_list = outfits_list["outfits"]
+        if isinstance(outfits_list, dict):
+            if "error" in outfits_list:
+                raise Exception(outfits_list["error"])
+            elif "outfits" in outfits_list:
+                outfits_list = outfits_list["outfits"]
+            else:
+                raise Exception("Fashion analysis response did not contain a valid outfits list.")
         else:
             raise Exception("Fashion analysis response did not contain a valid outfits list.")
             

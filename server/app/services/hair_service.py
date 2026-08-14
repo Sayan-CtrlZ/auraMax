@@ -1,6 +1,6 @@
 from typing import Union
 from app.prompts.hair_prompt import build_hair_prompt
-from app.services.bedrock_service import analyze_image
+from app.services.gemini_service import analyze_image
 from app.models.analyze import HairCareResult, HairStylingResult
 from app.clients.search import run_parallel_searches
 from app.services.validator_service import validate_products

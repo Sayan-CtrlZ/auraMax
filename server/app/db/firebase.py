@@ -4,24 +4,38 @@ import os
 
 from dotenv import load_dotenv
 
-# Load .env explicitly so GOOGLE_APPLICATION_CREDENTIALS is in os.environ
 load_dotenv()
 
 # Initialize Firebase Admin
 def init_firebase():
     if not firebase_admin._apps:
-        # We can use default credentials or a service account key
-        # In development, you usually set GOOGLE_APPLICATION_CREDENTIALS in .env
-        # Pointing to the firebase service account json file.
-        cred = credentials.ApplicationDefault()
-        try:
+        private_key = os.getenv("FIREBASE_PRIVATE_KEY")
+        client_email = os.getenv("FIREBASE_CLIENT_EMAIL")
+        project_id = os.getenv("FIREBASE_PROJECT_ID")
+
+        if private_key and client_email and project_id:
+            # Format private key replacing literal escaped newlines if present
+            formatted_private_key = private_key.replace("\\n", "\n")
+            cred_dict = {
+                "type": "service_account",
+                "project_id": project_id,
+                "private_key": formatted_private_key,
+                "client_email": client_email,
+            }
+            cred = credentials.Certificate(cred_dict)
             firebase_admin.initialize_app(cred)
-        except ValueError:
-            # If default creds fail, maybe the user wants to pass it directly
-            # For this project, we assume GOOGLE_APPLICATION_CREDENTIALS is set
-            firebase_admin.initialize_app()
+        elif os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
+            cred = credentials.Certificate(os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
+            firebase_admin.initialize_app(cred)
+        else:
+            try:
+                cred = credentials.ApplicationDefault()
+                firebase_admin.initialize_app(cred)
+            except Exception:
+                firebase_admin.initialize_app()
 
 init_firebase()
 
 # Export firestore client
 db = firestore.client()
+

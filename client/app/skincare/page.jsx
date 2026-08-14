@@ -3,8 +3,10 @@
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { useResultStore } from "@/store/useResultStore";
-import { ShieldCheck, Upload, AlertCircle, RefreshCw, Sun, Moon, ArrowRight, Loader2, ChevronDown, Trash2 } from "lucide-react";
+import { ShieldCheck, Upload, AlertCircle, RefreshCw, Sun, Moon, ArrowRight, Loader2, ChevronDown, Trash2, Sparkles, ClipboardList } from "lucide-react";
 import GlobalLoader from "@/components/shared/GlobalLoader";
+import ProductCarousel from "@/components/shared/ProductCarousel";
+import { auth } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
 
 const AGE_RANGES = [
@@ -133,9 +135,13 @@ export default function SkincarePage() {
     }, 500);
 
     try {
-      const res = await fetch("http://localhost:8000/api/v1/analyze/skincare", {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${API_BASE_URL}/api/v1/analyze/skincare`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          ...(token && { "Authorization": `Bearer ${token}` })
+        },
         body: JSON.stringify({
           image_base64: selectedImage,
           type: "skincare",
@@ -207,31 +213,32 @@ export default function SkincarePage() {
     }
   };
 
-  const handleUseSample = async () => {
-    try {
-      const response = await fetch("/sample-selfie.webp");
-      const blob = await response.blob();
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setSelectedImage(reader.result);
-        setCurrentStep(1);
-      };
-      reader.readAsDataURL(blob);
-    } catch (e) {
-      console.error("Failed to load sample image", e);
-    }
-  };
-
   const handleReset = () => {
     setSelectedImage(null);
     setCurrentStep(1);
     setResults(null);
   };
 
+  // Compute unified product steps to prevent duplicate product requests for same step
+  const unifiedProductSteps = [];
+  if (results?.routine) {
+    const allSteps = [...(results.routine.morning || []), ...(results.routine.evening || [])];
+    const uniqueMap = {};
+    allSteps.forEach(stepItem => {
+      const stepName = stepItem.step.toLowerCase();
+      if (!uniqueMap[stepName]) {
+        uniqueMap[stepName] = { ...stepItem, products: [...(stepItem.products || [])] };
+      } else {
+        uniqueMap[stepName].products.push(...(stepItem.products || []));
+      }
+    });
+    unifiedProductSteps.push(...Object.values(uniqueMap));
+  }
+
   return (
     <>
       <GlobalLoader isVisible={isScanning} message="Analyzing Skin Profile" subMessage={scanMessage} />
-      <div className="min-h-screen bg-[#FAF6F0] relative overflow-hidden pt-28 pb-16 px-6 md:px-12 text-stone-900">
+      <div className="min-h-screen bg-[#FAF6F0] relative overflow-hidden pt-28 pb-16 px-4 md:px-6 text-stone-900">
 
         {/* Background Watermarks */}
         <div
@@ -243,7 +250,7 @@ export default function SkincarePage() {
           style={{ maskImage: 'radial-gradient(ellipse at top right, black 10%, transparent 70%)', WebkitMaskImage: 'radial-gradient(ellipse at top right, black 10%, transparent 70%)' }}
         />
 
-        <div className="relative z-10 max-w-6xl mx-auto space-y-8">
+        <div className={cn("relative z-10 w-full mx-auto space-y-8 transition-all duration-700", results ? "max-w-[1920px]" : "max-w-6xl")}>
 
           {/* Header */}
           <div className="text-center md:text-left space-y-4 max-w-2xl">
@@ -329,13 +336,7 @@ export default function SkincarePage() {
                             <p className="text-xs text-stone-400 font-light mt-1.5 max-w-[200px]">
                               Drag and drop or click to browse. Ensure clear, direct facial lighting.
                             </p>
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); handleUseSample(); }}
-                              className="mt-4 text-xs font-semibold text-amber-800 hover:underline px-3 py-1.5 bg-amber-50 rounded-lg hover:bg-amber-100/60"
-                            >
-                              Use Sample Selfie
-                            </button>
+
                             <input
                               type="file"
                               ref={fileInputRef}
@@ -553,7 +554,7 @@ export default function SkincarePage() {
             )}
 
             {/* Right panel: Results */}
-                <div className={cn("bg-gradient-to-bl from-white/60 to-yellow-500/5 backdrop-blur-xl p-6 md:p-8 rounded-2xl border border-white shadow-sm min-h-[500px] flex flex-col justify-center transition-all duration-700", results ? "lg:col-span-12 w-full max-w-4xl mx-auto" : "lg:col-span-7")}>
+                <div className={cn("bg-gradient-to-bl from-white/60 to-yellow-500/5 backdrop-blur-xl p-6 md:p-8 rounded-2xl border border-white shadow-sm min-h-[500px] flex flex-col justify-center transition-all duration-700", results ? "lg:col-span-12 w-full" : "lg:col-span-7")}>
 
                   {/* Empty State */}
                   {!isScanning && !results && (
@@ -688,71 +689,77 @@ export default function SkincarePage() {
                       <div className="space-y-4">
                         <h4 className="text-sm font-serif font-medium text-stone-800">Personalized Routine Schedule</h4>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                          
+                          {/* Left Column: Product Cards */}
+                          <div className="lg:col-span-2 flex flex-col space-y-10">
 
-                          {/* Morning Routine */}
-                          <div className="space-y-3">
-                            <div className="flex items-center space-x-2 text-amber-800 border-b border-stone-100 pb-1.5">
-                              <Sun size={16} />
-                              <span className="text-xs font-bold uppercase tracking-wider">AM: Prevent & Protect</span>
-                            </div>
-                            <div className="space-y-3">
-                              {results.routine.morning.map((stepItem, idx) => {
-                                const topProduct = stepItem.products?.[0];
-                                return (
-                                  <div key={idx} className="flex items-center space-x-3 bg-stone-50 hover:bg-stone-100 transition-colors p-2.5 rounded-xl border border-stone-100/50">
-                                    <div className="relative w-12 h-12 flex-shrink-0 bg-white rounded-lg overflow-hidden border border-stone-200/40">
-                                      <img src={topProduct?.thumbnail || "/product_placeholder.png"} alt={topProduct?.name || stepItem.step} className="w-full h-full object-cover" />
+                            <div className="space-y-4">
+                              <div className="flex items-center space-x-2 text-stone-800 border-b border-stone-200 pb-2">
+                                <Sparkles size={20} className="text-amber-700" />
+                                <span className="text-sm font-bold uppercase tracking-wider">Your Skincare Arsenal</span>
+                              </div>
+                              <div className="space-y-6">
+                                {unifiedProductSteps.map((stepItem, idx) => {
+                                  const dedupedProducts = stepItem.products?.reduce((acc, current) => {
+                                    const brand = current.name.split(' ')[0].toLowerCase();
+                                    if (!acc.find(p => p.name.toLowerCase().startsWith(brand))) {
+                                      acc.push(current);
+                                    }
+                                    return acc;
+                                  }, []) || [];
+
+                                  return (
+                                    <div key={idx} className="bg-white p-5 rounded-2xl border border-stone-100 shadow-sm space-y-4 hover:shadow-md transition-shadow">
+                                      <h5 className="text-sm font-bold text-stone-800 capitalize pl-2">{stepItem.step} Products</h5>
+                                      <ProductCarousel products={dedupedProducts} />
                                     </div>
-                                    <div className="flex-1">
-                                      <div className="text-xs">
-                                        <span className="font-semibold text-stone-700">{stepItem.step}: </span>
-                                        {topProduct ? (
-                                          <a href={topProduct.link} target="_blank" rel="noreferrer" className="text-amber-800 font-medium hover:underline">
-                                            {topProduct.name} ({topProduct.price})
-                                          </a>
-                                        ) : (
-                                          <span className="text-amber-800 font-medium">No product found</span>
-                                        )}
-                                      </div>
-                                      <p className="text-[10px] text-stone-400 font-light mt-0.5 leading-tight">{stepItem.desc}</p>
-                                    </div>
-                                  </div>
-                                );
-                              })}
+                                  );
+                                })}
+                              </div>
                             </div>
+
                           </div>
 
-                          {/* Evening Routine */}
-                          <div className="space-y-3">
-                            <div className="flex items-center space-x-2 text-stone-800 border-b border-stone-100 pb-1.5">
-                              <Moon size={16} />
-                              <span className="text-xs font-bold uppercase tracking-wider">PM: Treat & Restore</span>
-                            </div>
-                            <div className="space-y-3">
-                              {results.routine.evening.map((stepItem, idx) => {
-                                const topProduct = stepItem.products?.[0];
-                                return (
-                                  <div key={idx} className="flex items-center space-x-3 bg-stone-50 hover:bg-stone-100 transition-colors p-2.5 rounded-xl border border-stone-100/50">
-                                    <div className="relative w-12 h-12 flex-shrink-0 bg-white rounded-lg overflow-hidden border border-stone-200/40">
-                                      <img src={topProduct?.thumbnail || "/product_placeholder.png"} alt={topProduct?.name || stepItem.step} className="w-full h-full object-cover" />
+                          {/* Right Column: AI Routine Guide */}
+                          <div className="lg:col-span-1 sticky top-28 bg-amber-50/50 rounded-2xl p-6 border border-amber-100/50 shadow-sm self-start">
+                            <h4 className="text-lg font-serif text-amber-900 mb-6 flex items-center space-x-2">
+                              <ClipboardList size={20} className="text-amber-700" />
+                              <span>Your AI Routine Guide</span>
+                            </h4>
+                            
+                            <div className="space-y-8">
+                              {/* AM Routine List */}
+                              <div>
+                                <h5 className="text-xs font-bold text-amber-800 mb-4 flex items-center uppercase tracking-wider">
+                                  <Sun size={14} className="mr-1.5" /> AM Routine
+                                </h5>
+                                <div className="space-y-4">
+                                  {results.routine.morning.map((step, idx) => (
+                                    <div key={idx} className="relative pl-4 border-l-2 border-amber-200">
+                                      <div className="absolute -left-[5px] top-1.5 w-2 h-2 rounded-full bg-amber-400"></div>
+                                      <h6 className="text-sm font-bold text-stone-800">{step.step}</h6>
+                                      <p className="text-xs text-stone-600 mt-1 leading-relaxed font-light">{step.desc}</p>
                                     </div>
-                                    <div className="flex-1">
-                                      <div className="text-xs">
-                                        <span className="font-semibold text-stone-700">{stepItem.step}: </span>
-                                        {topProduct ? (
-                                          <a href={topProduct.link} target="_blank" rel="noreferrer" className="text-amber-800 font-medium hover:underline">
-                                            {topProduct.name} ({topProduct.price})
-                                          </a>
-                                        ) : (
-                                          <span className="text-amber-800 font-medium">No product found</span>
-                                        )}
-                                      </div>
-                                      <p className="text-[10px] text-stone-400 font-light mt-0.5 leading-tight">{stepItem.desc}</p>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {/* PM Routine List */}
+                              <div>
+                                <h5 className="text-xs font-bold text-stone-800 mb-4 flex items-center uppercase tracking-wider">
+                                  <Moon size={14} className="mr-1.5" /> PM Routine
+                                </h5>
+                                <div className="space-y-4">
+                                  {results.routine.evening.map((step, idx) => (
+                                    <div key={idx} className="relative pl-4 border-l-2 border-stone-200">
+                                      <div className="absolute -left-[5px] top-1.5 w-2 h-2 rounded-full bg-stone-400"></div>
+                                      <h6 className="text-sm font-bold text-stone-800">{step.step}</h6>
+                                      <p className="text-xs text-stone-600 mt-1 leading-relaxed font-light">{step.desc}</p>
                                     </div>
-                                  </div>
-                                );
-                              })}
+                                  ))}
+                                </div>
+                              </div>
                             </div>
                           </div>
 

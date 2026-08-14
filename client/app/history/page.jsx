@@ -6,23 +6,71 @@ import {
   History, ShieldCheck, Sparkles, Heart, Clock, X, Trash2, 
   Sun, Moon, AlertCircle, Info, ClipboardList, Activity 
 } from "lucide-react";
+import ProductCarousel from "@/components/shared/ProductCarousel";
+import { auth } from "@/lib/firebase";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
 export default function HistoryPage() {
-  const { history, clearHistory } = useResultStore();
+  const { history, clearHistory, deleteHistoryItem, fetchHistory } = useResultStore();
   const [activeFilter, setActiveFilter] = useState("all");
   const [selectedItem, setSelectedItem] = useState(null);
   const [isMounted, setIsMounted] = useState(false);
+  const { user } = useAuth();
+  
+  // Custom dialog state
+  const [confirmDialog, setConfirmDialog] = useState({ 
+    isOpen: false, 
+    type: null, 
+    itemId: null, 
+    title: "", 
+    message: "" 
+  });
 
   useEffect(() => {
     setIsMounted(true);
-  }, []);
+    const fetchUserHistory = async () => {
+      if (auth.currentUser) {
+        const token = await auth.currentUser.getIdToken();
+        fetchHistory(token);
+      }
+    };
+    fetchUserHistory();
+  }, [user]);
 
-  const handleClear = () => {
-    if (confirm("Are you sure you want to delete all saved consultation reports? This action is irreversible.")) {
+  const handleClearRequest = () => {
+    setConfirmDialog({
+      isOpen: true,
+      type: "clearAll",
+      itemId: null,
+      title: "Clear All History",
+      message: "Are you sure you want to delete all saved consultation reports? This action is irreversible."
+    });
+  };
+
+  const handleDeleteRequest = (e, id) => {
+    e.stopPropagation();
+    setConfirmDialog({
+      isOpen: true,
+      type: "deleteOne",
+      itemId: id,
+      title: "Delete Entry",
+      message: "Are you sure you want to delete this consultation report? This action is irreversible."
+    });
+  };
+
+  const executeConfirm = async () => {
+    if (confirmDialog.type === "clearAll") {
       clearHistory();
       setSelectedItem(null);
+    } else if (confirmDialog.type === "deleteOne") {
+      if (auth.currentUser) {
+        const token = await auth.currentUser.getIdToken();
+        await deleteHistoryItem(confirmDialog.itemId, token);
+      }
+      if (selectedItem?.id === confirmDialog.itemId) setSelectedItem(null);
     }
+    setConfirmDialog({ isOpen: false, type: null, itemId: null, title: "", message: "" });
   };
 
   const getFilteredHistory = () => {
@@ -81,7 +129,26 @@ export default function HistoryPage() {
 
   if (!isMounted) return null;
 
+  const unifiedHistoryProductSteps = [];
+  if (selectedItem?.category === "skincare" && selectedItem.details?.routine) {
+    const allSteps = [
+      ...(selectedItem.details.routine.morning || []),
+      ...(selectedItem.details.routine.evening || [])
+    ];
+    const uniqueMap = {};
+    allSteps.forEach(stepItem => {
+      const stepName = stepItem.step.toLowerCase();
+      if (!uniqueMap[stepName]) {
+        uniqueMap[stepName] = { ...stepItem, products: [...(stepItem.products || [])] };
+      } else {
+        uniqueMap[stepName].products.push(...(stepItem.products || []));
+      }
+    });
+    unifiedHistoryProductSteps.push(...Object.values(uniqueMap));
+  }
+
   return (
+    <>
     <div className="min-h-screen bg-[#FAF6F0] pt-28 pb-16 px-6 md:px-12">
       <div className="max-w-4xl mx-auto space-y-8">
         
@@ -99,7 +166,7 @@ export default function HistoryPage() {
 
           {history.length > 0 && (
             <button
-              onClick={handleClear}
+              onClick={handleClearRequest}
               className="text-xs font-semibold px-4 py-2 border border-red-200 text-red-600 rounded-full hover:bg-red-50 transition-colors flex items-center justify-center space-x-1.5 self-center md:self-auto"
             >
               <Trash2 size={13} />
@@ -163,12 +230,22 @@ export default function HistoryPage() {
                   </div>
                 </div>
                 
-                <button
-                  type="button"
-                  className="text-xs px-3.5 py-1.5 border border-stone-200 rounded-full text-stone-600 font-medium group-hover:border-amber-800 group-hover:bg-amber-50 group-hover:text-amber-800 transition-all"
-                >
-                  View Details
-                </button>
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={(e) => handleDeleteRequest(e, item.id)}
+                    className="p-2 rounded-full text-stone-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 transition-all opacity-0 group-hover:opacity-100"
+                    title="Delete Entry"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    className="text-xs px-3.5 py-1.5 border border-stone-200 rounded-full text-stone-600 font-medium group-hover:border-amber-800 group-hover:bg-amber-50 group-hover:text-amber-800 transition-all"
+                  >
+                    View Details
+                  </button>
+                </div>
               </div>
             ))
           ) : (
@@ -193,7 +270,7 @@ export default function HistoryPage() {
       {/* Detail Overlay Drawer Modal */}
       {selectedItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 md:backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-2xl bg-white rounded-3xl border border-stone-200/50 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+          <div className="w-full max-w-[95vw] xl:max-w-7xl bg-white rounded-3xl border border-stone-200/50 shadow-2xl overflow-hidden max-h-[95vh] flex flex-col">
             
             {/* Modal Header */}
             <div className="p-6 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
@@ -267,37 +344,69 @@ export default function HistoryPage() {
                     </ul>
                   </div>
 
-                  {/* Morning & Evening Routine list */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                  {/* Unified Arsenal & AI Routine Guide */}
+                  <div className="space-y-6 pt-2">
+                    
+                    {/* Unified Arsenal */}
                     <div className="space-y-3">
-                      <div className="flex items-center space-x-2 text-amber-800 border-b border-stone-100 pb-1">
-                        <Sun size={15} />
-                        <span className="text-xs font-bold uppercase tracking-wider">AM Plan</span>
+                      <div className="flex items-center space-x-2 text-stone-800 border-b border-stone-100 pb-1.5">
+                        <Sparkles size={16} className="text-amber-700" />
+                        <span className="text-xs font-bold uppercase tracking-wider">Your Skincare Arsenal</span>
                       </div>
-                      <div className="space-y-2">
-                        {selectedItem.details.routine.morning.map((step, idx) => (
-                          <div key={idx} className="text-xs">
-                            <span className="font-semibold text-stone-700">{step.step}: </span>
-                            <span className="text-amber-800 font-medium">{step.product}</span>
-                          </div>
-                        ))}
+                      <div className="space-y-8 mt-4">
+                        {unifiedHistoryProductSteps.map((stepItem, idx) => {
+                          const dedupedProducts = stepItem.products?.reduce((acc, current) => {
+                            const brand = current.name.split(' ')[0].toLowerCase();
+                            if (!acc.find(p => p.name.toLowerCase().startsWith(brand))) {
+                              acc.push(current);
+                            }
+                            return acc;
+                          }, []) || [];
+
+                          return (
+                            <div key={idx} className="space-y-3">
+                               <h6 className="text-sm font-bold text-stone-800 capitalize pl-2">{stepItem.step} Products</h6>
+                               <ProductCarousel products={dedupedProducts} />
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
 
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-2 text-stone-800 border-b border-stone-100 pb-1">
-                        <Moon size={15} />
-                        <span className="text-xs font-bold uppercase tracking-wider">PM Plan</span>
+                    {/* AI Routine Guide */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-amber-50/50 p-4 rounded-xl border border-amber-100/50">
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-2 text-amber-800 border-b border-amber-200/50 pb-1">
+                          <Sun size={15} />
+                          <span className="text-[10px] font-bold uppercase tracking-wider">AM Routine</span>
+                        </div>
+                        <div className="space-y-2.5">
+                          {selectedItem.details.routine.morning.map((step, idx) => (
+                            <div key={idx} className="relative pl-3 border-l-2 border-amber-200">
+                              <div className="absolute -left-[4.5px] top-1.5 w-1.5 h-1.5 rounded-full bg-amber-400"></div>
+                              <h6 className="text-[11px] font-bold text-stone-800">{step.step}</h6>
+                              <p className="text-xs text-stone-600 mt-1 leading-relaxed font-light">{step.desc}</p>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        {selectedItem.details.routine.evening.map((step, idx) => (
-                          <div key={idx} className="text-xs">
-                            <span className="font-semibold text-stone-700">{step.step}: </span>
-                            <span className="text-amber-800 font-medium">{step.product}</span>
-                          </div>
-                        ))}
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-2 text-stone-800 border-b border-stone-200/50 pb-1">
+                          <Moon size={15} />
+                          <span className="text-[10px] font-bold uppercase tracking-wider">PM Routine</span>
+                        </div>
+                        <div className="space-y-2.5">
+                          {selectedItem.details.routine.evening.map((step, idx) => (
+                            <div key={idx} className="relative pl-3 border-l-2 border-stone-200">
+                              <div className="absolute -left-[4.5px] top-1.5 w-1.5 h-1.5 rounded-full bg-stone-400"></div>
+                              <h6 className="text-[11px] font-bold text-stone-800">{step.step}</h6>
+                              <p className="text-xs text-stone-600 mt-1 leading-relaxed font-light">{step.desc}</p>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
+                    
                   </div>
                 </div>
               )}
@@ -405,5 +514,35 @@ export default function HistoryPage() {
         </div>
       )}
     </div>
+
+      {/* Custom Alert Modal */}
+      {confirmDialog.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl border border-stone-200/50 shadow-2xl overflow-hidden max-w-sm w-full p-6 text-center space-y-4">
+            <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center mx-auto">
+              <AlertCircle size={24} />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-semibold text-stone-800">{confirmDialog.title}</h3>
+              <p className="text-sm text-stone-500 font-light leading-relaxed">{confirmDialog.message}</p>
+            </div>
+            <div className="flex items-center justify-center gap-3 pt-4 border-t border-stone-100">
+              <button
+                onClick={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+                className="px-5 py-2.5 rounded-xl font-medium text-sm text-stone-600 bg-stone-100 hover:bg-stone-200 transition-colors flex-1"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeConfirm}
+                className="px-5 py-2.5 rounded-xl font-medium text-sm text-white bg-red-600 hover:bg-red-700 transition-colors flex-1 shadow-sm"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

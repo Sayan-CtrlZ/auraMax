@@ -14,7 +14,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     if not credentials or not credentials.credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authorization header with Bearer token is missing"
+            detail="Not authenticated"
         )
     
     token = credentials.credentials

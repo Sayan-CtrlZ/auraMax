@@ -1,82 +1,373 @@
-# AuraMax — AI Beauty & Fashion Consultant
+# AuraMax - AI Beauty and Style Intelligence Platform
 
-AuraMax is a premium, high-fidelity web application designed as a personalized AI beauty and style advisor. Built with Next.js 14, Tailwind CSS, and Zustand, AuraMax features a luxury warm aesthetic (stone, amber, cream tones), smooth micro-animations, and persistent user consultation history tracking.
+AuraMax is an enterprise-grade AI beauty, skincare, and fashion style intelligence platform. Built with a modern microservices architecture using Next.js 14 App Router, FastAPI, Firebase Authentication, Cloud Firestore, and Multi-LLM Orchestration, AuraMax delivers personalized dermal diagnostic reports, custom style lookbooks, hair care routines, and live e-commerce product matching.
 
----
-
-## ✨ Features
-
-*   **Premium Landing Screen**: A responsive, cross-fading cinematic hero slideshow with custom beauty and fashion imagery.
-*   **Persistent Authentication**: Client-side registration and login simulation managed via Zustand, persisting user sessions in `localStorage`.
-*   **Interactive Dashboard**: Personalized greeting banner, summary counters (scans saved, skin aura, wardrobe curator), and a quick-look feed of recent consultations.
-*   **AI Skincare Scanner**: Upload a selfie (or load a sample portrait) to initiate a dermal health checkup featuring a glowing green laser scanner overlay, circular health index indicator, sub-metrics (hydration, barrier, elasticity, clarity), and clinical Morning/Night care routines.
-*   **AI Outfit Curator**: Custom lookbook assembler matching selected aesthetics (Minimalist, Avant-garde, Bohemian, Classic, Bold), occasions, and color palettes. Outputs styled coordinates (upperwear, bottoms, footwear, accessories), hex swatches, and styling advice.
-*   **AI Hair Planner**: Tailors weekly washing, scalp care, and deep conditioning masks into an interactive 7-day calendar based on hair texture and scalp moisture types.
-*   **Consultation Log History**: Sort reports using tag filters, clear history, and open comprehensive detailed summary drawers using card overlay modals.
+🔗 [Live Web Application](https://aura-max.vercel.app/)
 
 ---
 
-## 🛠️ Technology Stack
+## Architecture Overview
 
-*   **Framework**: Next.js 14 (App Router)
-*   **Styling**: Tailwind CSS & Vanilla CSS
-*   **Components & Icons**: shadcn/ui, Lucide Icons
-*   **State Management**: Zustand (with LocalStorage state synchronization)
+AuraMax operates as a decoupled client-server platform designed for high responsiveness, real-time streaming, and intelligent fallback handling across multiple AI foundation models.
 
----
-
-## 📂 Project Structure
-
-```text
-auraM/
-├── client/
-│   ├── app/
-│   │   ├── (auth)/
-│   │   │   ├── login/page.jsx      # Premium login screen
-│   │   │   └── signup/page.jsx     # Registration screen
-│   │   ├── skincare/page.jsx       # Dermal scanning module
-│   │   ├── fashion/page.jsx        # Style coordination lookbook
-│   │   ├── hair/page.jsx           # Follicle care calendar
-│   │   ├── history/page.jsx        # Timeline log & detail modals
-│   │   ├── layout.jsx              # Global layouts & fonts
-│   │   ├── globals.css             # Global Tailwind directives & animations
-│   │   └── page.jsx                # Entry route toggling
-│   ├── components/
-│   │   └── shared/
-│   │       ├── Navbar.jsx          # Auth-aware responsive navigation
-│   │       ├── HeroSlideshow.jsx   # Home landing cross-fade slider
-│   │       └── DashboardView.jsx   # Personalized user hub
-│   ├── store/
-│   │   └── useResultStore.js       # Zustand authentication & history store
-│   └── public/
-│       ├── hero/                   # Cinematic background slideshow assets
-│       └── sample-selfie.png       # Preloaded portrait for skincare scan
-└── README.md                       # Documentation
+```
++-----------------------------------------------------------------------+
+|                             Next.js 14 Client                         |
+|   (App Router, Tailwind CSS, AuthContext, Zustand State Management)   |
++-----------------------------------------------------------------------+
+                                   |
+                HTTP REST / Server-Sent Events (SSE)
+            Authorization: Bearer <Firebase ID Token>
+                                   |
+                                   v
++-----------------------------------------------------------------------+
+|                             FastAPI Backend                           |
+|       (Python Asyncio, Firebase Admin SDK, Pydantic Validation)       |
++-----------------------------------------------------------------------+
+          |                        |                        |
+          v                        v                        v
++------------------+     +-------------------+    +--------------------+
+|  Gemini Vision   |     |    Groq Llama 3   |    | Google Serp Engine |
+| Multimodal Scan  |     | Query Synthesis   |    | Real-Time Product  |
+| Image Extraction |     | Search Fallbacks  |    | Search & Ingestion |
++------------------+     +-------------------+    +--------------------+
+                                                            |
+                                                            v
+                                                  +--------------------+
+                                                  | Firebase Firestore |
+                                                  | User Consultation  |
+                                                  | History Storage    |
+                                                  +--------------------+
 ```
 
 ---
 
-## 🚀 Getting Started
+## AI Agentic Workflow and Multi-LLM Orchestration
+
+The core intelligence engine combines multimodal vision capabilities, structured LLM query generation, parallel web search synthesis, and automated product validation loops.
+
+### 1. Multimodal Image & Context Analysis
+When a user submits a selfie or outfit photograph, the backend constructs a structured prompt incorporating user metadata (age group, skin concerns, style preference, occasion, color palette). This payload is transmitted to the multimodal vision service (`Gemini 1.5 Flash` / `Pro`) to extract precise feature coordinates, skin hydration indices, dermal clarity metrics, or fashion outfit blueprints.
+
+### 2. Intelligent Search Query Generation
+For each routine step or style component generated by the vision model, the engine automatically synthesizes targeted e-commerce search queries. If initial search attempts return insufficient or low-relevance results, the system delegates to **Groq Llama-3.1-8B-Instant** to regenerate broader, semantically alternative search terms dynamically without human intervention.
+
+### 3. Parallel Google Serp Product Retrieval
+The backend calls external search engines (**Serper API** and **SerpAPI**) in parallel using non-blocking `asyncio` task groups (`run_parallel_searches`). It retrieves real-world product listings complete with titles, source domain links, prices, ratings, and image preview URLs.
+
+### 4. Product Validation & Safety Filtering
+Retrieved products pass through an automated validator (`validator_service.py`). The LLM checks each candidate against user context (e.g., verifying that recommended skincare products exclude active irritants for sensitive skin types). Validated products are attached to the output model.
+
+### 5. Server-Sent Events (SSE) Streaming
+For fashion lookbook generation, outfit concepts are processed in staggered parallel pipelines (`delay = i * 0.5s`). Outfits are streamed back to the client progressively via Server-Sent Events (`text/event-stream`), enabling immediate rendering as each outfit completes.
+
+---
+
+## Technology Stack
+
+### Frontend Client
+- **Framework**: Next.js 14 (App Router)
+- **Styling**: Vanilla CSS3, Tailwind CSS (Warm Luxury Design System)
+- **Authentication**: Firebase Web SDK v10 (Google Auth Popup, Email/Password)
+- **State Management**: React Context (`AuthContext`), Zustand (`useResultStore`)
+- **Typography & Icons**: Lucide React, Geist Sans & Mono local fonts
+
+### Backend Server
+- **Framework**: FastAPI (Python 3.11+)
+- **Security & Authorization**: Firebase Admin SDK (`verify_id_token`), HTTP Bearer Middleware
+- **AI Models & Orchestration**: Groq SDK (`llama-3.1-8b-instant`), Google Generative AI SDK (`gemini-1.5-flash`)
+- **Search & Ingestion**: Serper API, SerpAPI (`httpx` async client)
+- **Data Validation**: Pydantic v2 schemas
+- **Database**: Cloud Firestore
+
+---
+
+## Project Directory Structure
+
+```text
+auraMax/
+├── client/                               # Next.js 14 Frontend Application
+│   ├── app/
+│   │   ├── (auth)/
+│   │   │   ├── login/page.jsx            # Authentication Login View
+│   │   │   └── signup/page.jsx           # User Registration View
+│   │   ├── fashion/page.jsx              # AI Outfit Curator & Style Lookbook
+│   │   ├── hair/page.jsx                 # Hair & Scalp Diagnostic Engine
+│   │   ├── history/page.jsx              # Timeline Consultation Logs
+│   │   ├── skincare/page.jsx             # AI Dermal Health Scanner
+│   │   ├── favicon.ico                   # Application Icon
+│   │   ├── globals.css                   # Global Design System & Micro-Animations
+│   │   ├── layout.jsx                    # Root Layout & Provider Wrapper
+│   │   └── page.jsx                      # Conditional Landing / Dashboard Entry
+│   ├── components/
+│   │   └── shared/
+│   │       ├── DashboardView.jsx         # Authenticated User Overview Hub
+│   │       ├── HeroSlideshow.jsx         # Landing Hero Section
+│   │       └── Navbar.jsx                # Responsive Auth-Aware Navigation
+│   ├── contexts/
+│   │   └── AuthContext.js                # Firebase Authentication Context
+│   ├── store/
+│   │   └── useResultStore.js             # Zustand Client Store
+│   └── public/                           # Static Visual Assets
+│
+└── server/                               # FastAPI Backend Application
+    ├── main.py                           # Application Entry Point & CORS Setup
+    ├── app/
+    │   ├── api/v1/
+    │   │   ├── router.py                 # API v1 Router Aggregator
+    │   │   └── endpoints/
+    │   │       ├── analyze.py            # Skincare, Fashion, Hair AI Endpoints
+    │   │       ├── auth.py               # Legacy Auth Endpoints
+    │   │       └── history.py            # User Consultation Log Endpoints
+    │   ├── clients/
+    │   │   └── search.py                 # Async Serper & SerpAPI Clients
+    │   ├── core/
+    │   │   ├── config.py                 # Pydantic BaseSettings Configuration
+    │   │   └── dependencies.py           # Firebase ID Token Verification Middleware
+    │   ├── db/
+    │   │   └── firebase.py               # Firebase Admin SDK & Firestore Client
+    │   ├── models/
+    │   │   ├── analyze.py                # Pydantic Schemas for AI Analysis
+    │   │   ├── auth.py                   # Auth Request & Response Schemas
+    │   │   └── history.py                # History Log Schemas
+    │   ├── prompts/
+    │   │   ├── fashion_prompt.py         # Fashion Style System Prompts
+    │   │   ├── hair_prompt.py            # Hair Diagnostic System Prompts
+    │   │   └── skincare_prompt.py       # Dermal Health System Prompts
+    │   └── services/
+    │       ├── fashion_service.py        # Streamed Fashion Lookbook Pipeline
+    │       ├── gemini_service.py         # Gemini Vision Image Processing
+    │       ├── groq_service.py           # Groq Structured JSON & Query Fallback
+    │       ├── hair_service.py           # Hair Care Analysis Pipeline
+    │       ├── history_service.py        # Firestore CRUD Operations
+    │       ├── skincare_service.py       # Skincare Scan & Product Matching
+    │       └── validator_service.py      # E-Commerce Product Validation Engine
+    └── requirements.txt                  # Python Dependency Specifications
+```
+
+---
+
+## Complete API Reference
+
+All protected endpoints require an `Authorization` HTTP header with a valid Firebase ID Token:
+```text
+Authorization: Bearer <firebase_id_token>
+```
+
+### 1. Skincare Analysis
+
+- **Route**: `POST /api/v1/analyze/skincare`
+- **Authentication**: Required (`Bearer <token>`)
+- **Content-Type**: `application/json`
+
+#### Request Body
+```json
+{
+  "image_base64": "data:image/jpeg;base64,...",
+  "type": "skincare",
+  "context": {
+    "ageRange": "25-34",
+    "skinType": "Combination",
+    "concerns": ["Hyperpigmentation", "Dryness"],
+    "sensitivity": "Moderate"
+  }
+}
+```
+
+#### Response Payload (`200 OK`)
+```json
+{
+  "skin_type": "Combination",
+  "health_score": 88,
+  "metrics": {
+    "hydration": 82,
+    "barrier_strength": 85,
+    "elasticity": 90,
+    "clarity": 84
+  },
+  "concerns_detected": ["Mild Hyperpigmentation", "Localized Dryness"],
+  "routine": {
+    "morning": [
+      {
+        "step": "Gentle Cleanser",
+        "instructions": "Use a hydrating non-foaming cleanser with lukewarm water.",
+        "products": [
+          {
+            "title": "Hydrating Facial Cleanser",
+            "brand": "CeraVe",
+            "price": "$15.99",
+            "link": "https://example.com/product",
+            "image": "https://example.com/image.jpg"
+          }
+        ]
+      }
+    ],
+    "evening": []
+  }
+}
+```
+
+---
+
+### 2. Fashion Style Lookbook (Streamed)
+
+- **Route**: `POST /api/v1/analyze/fashion`
+- **Authentication**: Required (`Bearer <token>`)
+- **Content-Type**: `application/json`
+- **Response Format**: `text/event-stream` (Server-Sent Events)
+
+#### Request Body
+```json
+{
+  "image_base64": "data:image/jpeg;base64,...",
+  "type": "fashion",
+  "context": {
+    "aesthetic": "Minimalist Luxury",
+    "occasion": "Smart Casual / Evening",
+    "colorPalette": "Warm Neutral (Cream, Espresso, Olive)"
+  }
+}
+```
+
+#### Stream Response Format (`200 OK`)
+```text
+data: {"id": 1, "title": "Monochromatic Linen Ensemble", "pieces": [{"desc": "Oversized Cream Linen Blazer", "products": [...]}]}
+
+data: {"id": 2, "title": "Tailored Espresso Trousers Outfit", "pieces": [...] }
+
+event: close
+data: {}
+```
+
+---
+
+### 3. Hair & Scalp Diagnostic
+
+- **Route**: `POST /api/v1/analyze/hair`
+- **Authentication**: Required (`Bearer <token>`)
+- **Content-Type**: `application/json`
+
+#### Request Body
+```json
+{
+  "image_base64": "data:image/jpeg;base64,...",
+  "type": "hair",
+  "context": {
+    "hairTexture": "Wavy (2B)",
+    "scalpCondition": "Dry / Sensitive",
+    "goals": ["Frizz Control", "Scalp Hydration"]
+  }
+}
+```
+
+---
+
+### 4. Consultation History Log
+
+#### Fetch User History
+- **Route**: `GET /api/v1/history`
+- **Authentication**: Required (`Bearer <token>`)
+- **Response Payload (`200 OK`)**:
+```json
+{
+  "items": [
+    {
+      "id": "doc_firestore_id_123",
+      "userId": "firebase_uid_456",
+      "type": "skincare",
+      "createdAt": "2026-08-14T10:30:00Z",
+      "result": { ... }
+    }
+  ]
+}
+```
+
+#### Delete History Item
+- **Route**: `DELETE /api/v1/history/{id}`
+- **Authentication**: Required (`Bearer <token>`)
+- **Response Payload (`200 OK`)**:
+```json
+{
+  "status": "success",
+  "message": "History record deleted successfully."
+}
+```
+
+---
+
+## Environment Variables Configuration
+
+### Backend Environment Variables (`server/.env`)
+
+```ini
+# Server Configuration
+PORT=8000
+HOST=0.0.0.0
+DEBUG=False
+ALLOWED_ORIGINS=http://localhost:3000,https://auramax.onrender.com
+
+# LLM & Search API Keys
+GROQ_API_KEY=gsk_your_groq_api_key
+GEMINI_API_KEY=your_gemini_api_key
+SERPER_API_KEY=your_serper_api_key
+SERPAPI_API_KEY=your_serpapi_api_key
+
+# Firebase Admin SDK Credentials
+FIREBASE_PROJECT_ID=aura-max-cd5b5
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-fbsvc@aura-max-cd5b5.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+```
+
+### Frontend Environment Variables (`client/.env.local`)
+
+```ini
+# Backend API Base URL
+NEXT_PUBLIC_API_URL=http://localhost:8000
+
+# Firebase Web App Credentials
+NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyC3TlJ_VYjk6BTb0HgSYpBhSt30WOlOCak
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=aura-max-cd5b5.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=aura-max-cd5b5
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=aura-max-cd5b5.firebasestorage.app
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=917246632893
+NEXT_PUBLIC_FIREBASE_APP_ID=1:917246632893:web:a04e4ac5921d0de16fa8d4
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-GVLX9T1W95
+```
+
+---
+
+## Local Development Setup
 
 ### Prerequisites
-*   Node.js (v18.0.0 or higher)
-*   npm or yarn
+- Node.js (v18.0.0+)
+- Python (v3.11+)
+- Firebase Project with Authentication & Firestore enabled
 
-### Installation & Run
+### 1. Start FastAPI Backend
+```bash
+cd server
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+uvicorn main:app --reload --port 8000
+```
 
-1. Navigate to the client directory:
-   ```bash
-   cd client
-   ```
+### 2. Start Next.js Frontend
+```bash
+cd client
+npm install
+npm run dev
+```
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+Open 🔗 [http://localhost:3000](http://localhost:3000) in your browser.
 
-3. Start the Next.js development server:
-   ```bash
-   npm run dev
-   ```
+---
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+## Author & Maintainer
+
+Designed and built by **Sayan CtlZ**.
+
+🔗 [Live Application](https://aura-max.vercel.app/)  
+🔗 [GitHub Profile](https://github.com/Sayan-CtrlZ)  
+🔗 [Project Repository](https://github.com/Sayan-CtrlZ/auraMax)

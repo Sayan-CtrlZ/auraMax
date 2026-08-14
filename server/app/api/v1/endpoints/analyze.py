@@ -15,7 +15,7 @@ from app.core.dependencies import get_current_user
 router = APIRouter(prefix="/analyze", tags=["AI Analysis"])
 
 @router.post("/skincare", response_model=SkincareResult)
-async def skincare_analysis(body: AnalyzeRequest):
+async def skincare_analysis(body: AnalyzeRequest, current_user = Depends(get_current_user)):
     """
     Performs AI dermatology scan, registers analysis in history, and returns recommendations.
     """
@@ -29,11 +29,13 @@ async def skincare_analysis(body: AnalyzeRequest):
         result = await skincare_service.analyze_skincare(body.image_base64, body.context)
         
         # Save consultation log to Supabase history
-        history_service.save_history(
-            user_id="test-user-id",
-            type="skincare",
-            result=result.model_dump()
-        )
+        if result:
+            history_service.save_history(
+                user_id=current_user.id,
+                type="skincare",
+                result=result.model_dump()
+            )
+
         
         return result
     except Exception as e:
@@ -66,11 +68,12 @@ async def fashion_analysis(body: AnalyzeRequest, current_user = Depends(get_curr
                 yield f"data: {json.dumps(outfit.model_dump())}\n\n"
                 
             # After all outfits are yielded, save to history
-            history_service.save_history(
-                user_id=current_user.id,
-                type="fashion",
-                result=outfits
-            )
+            if outfits:
+                history_service.save_history(
+                    user_id=current_user.id,
+                    type="fashion",
+                    result=outfits
+                )
             yield "event: close\ndata: {}\n\n"
         except Exception as e:
             # Yield error event

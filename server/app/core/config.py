@@ -4,15 +4,13 @@ class Settings(BaseSettings):
     CLOUDINARY_CLOUD_NAME: str
     CLOUDINARY_API_KEY: str
     CLOUDINARY_API_SECRET: str
-    HUGGINGFACE_API_KEY: str
     SECRET_KEY: str
     ENVIRONMENT: str = "development"
     SERPER_API_KEY: str = ""
     SERPAPI_API_KEY: str = ""
     FIREBASE_WEB_API_KEY: str = ""
-    AWS_ACCESS_KEY_ID: str = ""
-    AWS_SECRET_ACCESS_KEY: str = ""
-    AWS_DEFAULT_REGION: str = "us-east-1"
+    GEMINI_API_KEY: str = ""
+    GROQ_API_KEY: str = ""
 
     # Pydantic v2 settings configuration
     model_config = SettingsConfigDict(

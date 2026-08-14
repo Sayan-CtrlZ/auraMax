@@ -1,7 +1,7 @@
 import localFont from "next/font/local";
 import "./globals.css";
 import Navbar from "@/components/shared/Navbar";
-
+import { AuthProvider } from "@/contexts/AuthContext";
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
   variable: "--font-geist-sans",
@@ -16,14 +16,19 @@ const geistMono = localFont({
 export const metadata = {
   title: "AuraMax — AI Beauty & Fashion",
   description: "Your personalized AI beauty and style consultant. Get tailored skincare, fashion, and hair care recommendations.",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans bg-[#FAF6F0]`}>
-        <Navbar />
-        {children}
+        <AuthProvider>
+          <Navbar />
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

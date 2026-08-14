@@ -28,7 +28,12 @@ Create exactly 4 outfit concept recommendations tailored for this user. For each
 
 Return ONLY a valid JSON array matching the exact structure below. Do not wrap it in markdown code blocks like ```json or add any explanations outside the JSON.
 
-JSON Schema:
+CRITICAL REJECTION RULES: You must abort the fashion analysis and return EXACTLY {{"error": "The image is not correct. Please upload a photo showing at least some clothing or body, not just a close-up face or empty scenery."}} IF AND ONLY IF:
+1. The image does NOT contain a person at all.
+2. The image contains ONLY a close-up face or headshot with no clothing or body visible.
+Otherwise (e.g. if any clothing or partial body is visible), you MUST proceed with the analysis and NOT reject it.
+
+JSON Schema (If valid person found):
 [
   {{
     "id": 1,

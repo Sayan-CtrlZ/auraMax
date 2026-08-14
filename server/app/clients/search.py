@@ -22,18 +22,22 @@ async def search_google_shopping(query: str) -> list[dict]:
     
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.get(url, params=params, timeout=10.0)
+            response = await client.get(url, params=params, timeout=20.0)
             if response.status_code == 200:
                 data = response.json()
                 shopping_results = data.get("shopping_results", [])
                 
                 raw_products = []
                 for item in shopping_results[:15]:
+                    link = item.get("product_link") or item.get("link", "#")
+                    if link.startswith("/"):
+                        link = f"https://www.google.com{link}"
+                        
                     raw_products.append({
                         "name": item.get("title", ""),
                         "price": item.get("price", ""),
                         "source": item.get("source", "Google Shopping"),
-                        "link": item.get("link", "#"),
+                        "link": link,
                         "thumbnail": item.get("thumbnail", "/product_placeholder.png")
                     })
                 return raw_products
@@ -60,18 +64,22 @@ async def search_amazon_india(query: str) -> list[dict]:
     
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.get(url, params=params, timeout=10.0)
+            response = await client.get(url, params=params, timeout=20.0)
             if response.status_code == 200:
                 data = response.json()
                 amazon_results = data.get("amazon_results", [])
                 
                 raw_products = []
                 for item in amazon_results[:15]:
+                    link = item.get("link", "#")
+                    if link.startswith("/"):
+                        link = f"https://www.amazon.in{link}"
+                        
                     raw_products.append({
                         "name": item.get("title", ""),
                         "price": item.get("price", {}).get("raw", "") if isinstance(item.get("price"), dict) else str(item.get("price", "")),
                         "source": "Amazon India",
-                        "link": item.get("link", "#"),
+                        "link": link,
                         "thumbnail": item.get("thumbnail", "/product_placeholder.png")
                     })
                 return raw_products
