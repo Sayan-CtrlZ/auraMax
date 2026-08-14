@@ -113,9 +113,29 @@ export default function FashionPage() {
 
   const addHistoryItem = useResultStore((state) => state.addHistoryItem);
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
     if (file) {
+      try {
+        const token = auth.currentUser ? await auth.currentUser.getIdToken() : null;
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const res = await fetch(`${API_BASE_URL}/api/v1/analyze/check-limit?type=fashion`, {
+          headers: {
+            ...(token && { "Authorization": `Bearer ${token}` })
+          }
+        });
+        if (res.ok) {
+          const limitData = await res.json();
+          if (limitData.exceeded) {
+            alert(limitData.detail);
+            e.target.value = ""; // clear file input
+            return;
+          }
+        }
+      } catch (error) {
+        console.error("Failed to check scan limit:", error);
+      }
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setSelectedImage(reader.result);

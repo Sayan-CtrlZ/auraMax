@@ -4,7 +4,6 @@ python-dotenv
 pydantic-settings
 google-genai
 firebase-admin
-cloudinary
 huggingface-hub
 python-multipart
 pillow

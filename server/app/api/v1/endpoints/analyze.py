@@ -15,6 +15,42 @@ from app.core.config import settings
 
 router = APIRouter(prefix="/analyze", tags=["AI Analysis"])
 
+@router.get("/check-limit")
+async def check_limit(type: str, current_user = Depends(get_current_user)):
+    """
+    Checks if a user has exceeded the daily scan limit for a specific category.
+    """
+    limit = 1
+    if type == "skincare":
+        limit = settings.SKINCARE_SCAN_LIMIT
+    elif type == "fashion":
+        limit = settings.FASHION_SCAN_LIMIT
+    elif type == "hair":
+        limit = settings.HAIR_SCAN_LIMIT
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid type parameter. Expected 'skincare', 'fashion', or 'hair'."
+        )
+
+    is_exceeded = history_service.check_scan_limit(current_user.id, type=type, max_scans=limit)
+    
+    # Custom messages
+    detail_msg = ""
+    if is_exceeded:
+        if type == "skincare":
+            detail_msg = f"Since you are currently in a free tier, you can only perform {limit} skincare scan every 24 hours. Please wait 1 day for your daily limit to refresh."
+        elif type == "fashion":
+            detail_msg = f"Since you are currently in a free tier, you can only perform {limit} style curation every 24 hours. Please wait 1 day for your daily limit to refresh."
+        else:
+            detail_msg = f"Since you are currently in a free tier, you can only perform {limit} hair analysis every 24 hours. Please wait 1 day for your daily limit to refresh."
+
+    return {
+        "exceeded": is_exceeded,
+        "limit": limit,
+        "detail": detail_msg
+    }
+
 @router.post("/skincare", response_model=SkincareResult)
 async def skincare_analysis(body: AnalyzeRequest, current_user = Depends(get_current_user)):
     """

@@ -48,6 +48,8 @@ def get_history(user_id: str) -> HistoryListResponse:
         items = []
         for doc in docs:
             data = doc.to_dict()
+            if data.get("deleted") is True:
+                continue
             items.append(HistoryItem(
                 id=data.get("id", doc.id),
                 user_id=data.get("user_id", ""),
@@ -66,14 +68,14 @@ def get_history(user_id: str) -> HistoryListResponse:
 
 def delete_history(history_id: str, user_id: str) -> bool:
     """
-    Deletes a specific history record belonging to the given user.
+    Deletes (soft deletes) a specific history record belonging to the given user.
     """
     try:
         doc_ref = db.collection("history").document(history_id)
         doc = doc_ref.get()
         
         if doc.exists and doc.to_dict().get("user_id") == user_id:
-            doc_ref.delete()
+            doc_ref.update({"deleted": True})
             return True
             
         return False

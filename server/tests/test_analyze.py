@@ -33,17 +33,31 @@ async def test_skincare_analysis():
             "morning": [
                 {
                     "step": "Cleanse",
-                    "product": "Gentle Hydrating Cleanser",
                     "desc": "Non-stripping milk wash.",
-                    "image": "/product_cleanser.png"
+                    "products": [
+                        {
+                            "name": "Gentle Hydrating Cleanser",
+                            "price": "₹500",
+                            "source": "Amazon",
+                            "link": "https://amazon.in",
+                            "thumbnail": "/product_cleanser.png"
+                        }
+                    ]
                 }
             ],
             "evening": [
                 {
                     "step": "Treat",
-                    "product": "Retinol",
                     "desc": "Encourages cell turnover.",
-                    "image": "/product_retinol.png"
+                    "products": [
+                        {
+                            "name": "Retinol",
+                            "price": "₹1200",
+                            "source": "Amazon",
+                            "link": "https://amazon.in",
+                            "thumbnail": "/product_retinol.png"
+                        }
+                    ]
                 }
             ]
         }
