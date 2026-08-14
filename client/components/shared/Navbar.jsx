@@ -43,7 +43,7 @@ export default function Navbar() {
 
   // Determine which links to show based on auth state
   const loggedInLinks = [
-    { name: "Dashboard", href: "/" },
+    { name: "Home", href: "/" },
     { name: "Skincare Scan", href: "/skincare" },
     { name: "Style Guide", href: "/fashion" },
     { name: "Hair Planner", href: "/hair" },
@@ -134,7 +134,7 @@ export default function Navbar() {
             </div>
           ) : (
             <button
-              onClick={signInWithGoogle}
+              onClick={() => router.push("/login")}
               className={cn(
                 buttonVariants({ variant: "default" }),
                 "rounded-full h-auto px-10 py-4 transition-all duration-300 font-medium text-base text-white cursor-pointer",
@@ -199,7 +199,7 @@ export default function Navbar() {
             <button
               onClick={() => {
                 setIsMobileMenuOpen(false);
-                signInWithGoogle();
+                router.push("/login");
               }}
               className={cn(
                 buttonVariants({ variant: "default" }),

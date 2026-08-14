@@ -166,7 +166,7 @@ export default function SettingsPage() {
             <div>
               <Link href="/" className="inline-flex items-center space-x-1.5 text-stone-500 hover:text-stone-800 text-sm font-medium mb-3 transition-colors">
                 <ArrowLeft size={16} />
-                <span>Back to Dashboard</span>
+                <span>Back to Home</span>
               </Link>
               <h1 className="text-3xl font-serif font-bold text-stone-850">Account & Security</h1>
               <p className="text-stone-550 text-sm mt-1">Manage your active login methods and authentication settings</p>

@@ -5,9 +5,12 @@ import Link from "next/link";
 import { useResultStore } from "@/store/useResultStore";
 import { Sparkles, Activity, ShieldCheck, Heart, ArrowRight, Compass } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { auth } from "@/lib/firebase";
 
 export default function DashboardView() {
-  const { user, history } = useResultStore();
+  const { user } = useAuth();
+  const { history, fetchHistory } = useResultStore();
   const [greeting, setGreeting] = useState("Welcome back");
 
   useEffect(() => {
@@ -17,9 +20,20 @@ export default function DashboardView() {
     else setGreeting("Good evening");
   }, []);
 
+  useEffect(() => {
+    const fetchUserHistory = async () => {
+      if (auth.currentUser) {
+        const token = await auth.currentUser.getIdToken();
+        await fetchHistory(token);
+      }
+    };
+    fetchUserHistory();
+  }, [user]);
+
   const getGreetingName = () => {
-    if (!user || !user.name) return "Guest";
-    return user.name.split(" ")[0];
+    if (!user || (!user.name && !user.displayName)) return "User";
+    const name = user.displayName || user.name;
+    return name.split(" ")[0];
   };
 
   const getCategoryGradient = (category) => {

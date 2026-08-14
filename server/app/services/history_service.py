@@ -43,7 +43,6 @@ def get_history(user_id: str) -> HistoryListResponse:
         # Firebase will provide a direct link in the error to create it if it fails.
         docs = db.collection("history") \
             .where("user_id", "==", user_id) \
-            .order_by("created_at", direction=firestore.Query.DESCENDING) \
             .stream()
             
         items = []
@@ -56,6 +55,9 @@ def get_history(user_id: str) -> HistoryListResponse:
                 result=data.get("result", {}),
                 created_at=data.get("created_at", "")
             ))
+            
+        # Sort in memory by created_at descending to avoid requiring a composite index
+        items.sort(key=lambda x: x.created_at, reverse=True)
             
         return HistoryListResponse(items=items)
     except Exception as e:
