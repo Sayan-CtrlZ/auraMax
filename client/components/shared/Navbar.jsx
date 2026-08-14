@@ -58,10 +58,12 @@ export default function Navbar() {
     { name: "Pricing", href: "/#pricing" },
   ];
 
-  const navLinks = isMounted && isAuthenticated ? loggedInLinks : loggedOutLinks;
+  const isLocalStorageLoggedIn = typeof window !== 'undefined' && localStorage.getItem("auraMax_logged_in") === "true";
+  const showLoggedIn = isMounted && (isAuthenticated || (loading && isLocalStorageLoggedIn));
+  const navLinks = showLoggedIn ? loggedInLinks : loggedOutLinks;
   
   // Decide if headers should have solid background (e.g. on subpages, always scrolled look)
-  const isDashboard = isMounted && isAuthenticated && pathname === "/";
+  const isDashboard = showLoggedIn && pathname === "/";
   const isSubPage = pathname !== "/" || isDashboard;
   const isHeaderScrolledLook = isScrolled || isSubPage || isMobileMenuOpen;
   
@@ -114,7 +116,7 @@ export default function Navbar() {
  
         {/* Desktop CTA / Auth Button */}
         <div className="hidden md:flex items-center space-x-4">
-          {isMounted && isAuthenticated ? (
+          {showLoggedIn ? (
             <div className="flex items-center space-x-4">
               <span className={cn("text-base font-medium flex items-center space-x-1.5", isHeaderScrolledLook ? "text-stone-700" : "text-stone-200")}>
                 <User size={18} className="text-brand-purple" />
@@ -180,7 +182,7 @@ export default function Navbar() {
               {link.name}
             </Link>
           ))}
-          {isMounted && isAuthenticated ? (
+          {showLoggedIn ? (
             <div className="pt-2 flex flex-col space-y-3">
               <div className="flex items-center space-x-2 text-stone-700 px-1 py-1 text-base font-medium">
                 <User size={20} className="text-brand-purple" />

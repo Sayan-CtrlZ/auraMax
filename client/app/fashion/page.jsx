@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useResultStore } from "@/store/useResultStore";
-import { Compass, UploadCloud, Image as ImageIcon, X, Loader2, ArrowRight, ShoppingBag, ExternalLink, Sparkles, Upload, ChevronDown, Trash2 } from "lucide-react";
+import { Compass, UploadCloud, Image as ImageIcon, X, Loader2, ArrowRight, ShoppingBag, ExternalLink, Sparkles, Upload, ChevronDown, Trash2, AlertCircle } from "lucide-react";
 import Image from "next/image";
 import { auth } from "@/lib/firebase";
 import { cn } from "@/lib/utils";
@@ -110,32 +110,14 @@ export default function FashionPage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState(null);
+  const [limitModalOpen, setLimitModalOpen] = useState(false);
+  const [limitModalMessage, setLimitModalMessage] = useState("");
 
   const addHistoryItem = useResultStore((state) => state.addHistoryItem);
 
-  const handleImageUpload = async (e) => {
+  const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      try {
-        const token = auth.currentUser ? await auth.currentUser.getIdToken() : null;
-        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-        const res = await fetch(`${API_BASE_URL}/api/v1/analyze/check-limit?type=fashion`, {
-          headers: {
-            ...(token && { "Authorization": `Bearer ${token}` })
-          }
-        });
-        if (res.ok) {
-          const limitData = await res.json();
-          if (limitData.exceeded) {
-            alert(limitData.detail);
-            e.target.value = ""; // clear file input
-            return;
-          }
-        }
-      } catch (error) {
-        console.error("Failed to check scan limit:", error);
-      }
-
       const reader = new FileReader();
       reader.onloadend = () => {
         setSelectedImage(reader.result);
@@ -275,7 +257,8 @@ export default function FashionPage() {
       });
     } catch (error) {
       console.error("Fashion Error:", error);
-      alert(error.message || "An unexpected error occurred. Please try again.");
+      setLimitModalMessage(error.message || "An unexpected error occurred. Please try again.");
+      setLimitModalOpen(true);
       setResults(null);
       setIsLoading(false);
     }
@@ -284,6 +267,32 @@ export default function FashionPage() {
   return (
     <>
       <GlobalLoader isVisible={isLoading} message="Curating Style Concepts" subMessage="Synthesizing preferences with perfect silhouettes..." />
+
+      {/* Custom Limit Exceeded Modal */}
+      {limitModalOpen && (
+        <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white/95 max-w-md w-full rounded-2xl p-6 border border-stone-200/80 shadow-2xl space-y-6 text-center">
+            <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto text-amber-600">
+              <AlertCircle size={32} />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-serif font-semibold text-stone-900">
+                {limitModalMessage.includes("limit") ? "Scan Limit Reached" : "Error Occurred"}
+              </h3>
+              <p className="text-sm text-stone-600 leading-relaxed">
+                {limitModalMessage}
+              </p>
+            </div>
+            <button
+              onClick={() => setLimitModalOpen(false)}
+              className="w-full bg-stone-900 hover:bg-stone-850 text-white font-medium py-3 rounded-xl transition-all duration-300 shadow-md"
+            >
+              Understand
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="min-h-screen bg-[#FAF6F0] pt-28 pb-16 px-6 md:px-12">
         <div className="max-w-7xl mx-auto space-y-10">
 

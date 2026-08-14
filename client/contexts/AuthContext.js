@@ -27,6 +27,11 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
+      if (user) {
+        localStorage.setItem("auraMax_logged_in", "true");
+      } else {
+        localStorage.removeItem("auraMax_logged_in");
+      }
       setLoading(false);
     });
 
@@ -69,6 +74,7 @@ export function AuthProvider({ children }) {
 
   const signOut = async () => {
     try {
+      localStorage.removeItem("auraMax_logged_in");
       await firebaseSignOut(auth);
     } catch (error) {
       console.error("Error signing out", error);
