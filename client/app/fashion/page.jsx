@@ -276,6 +276,19 @@ export default function FashionPage() {
             </p>
           </div>
 
+          {/* Beta Warning Banner */}
+          <div className="p-4 md:p-5 rounded-3xl bg-amber-50/70 border border-amber-200/50 text-stone-700 text-sm flex items-start space-x-3.5 shadow-sm">
+            <div className="flex-shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-2xl bg-amber-100 text-amber-700 mt-0.5">
+              <Sparkles size={16} className="animate-pulse" />
+            </div>
+            <div className="space-y-0.5">
+              <h4 className="font-semibold text-stone-850 text-sm">Experimental Beta Version</h4>
+              <p className="text-xs text-stone-500 leading-relaxed font-light">
+                The Style Guide is currently in experimental beta. Due to high query volumes, generation might occasionally experience delays or timeout. Thank you for your patience.
+              </p>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
 
             {/* Left panel: Wizard or Summary */}
