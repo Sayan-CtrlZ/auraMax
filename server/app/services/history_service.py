@@ -79,3 +79,28 @@ def delete_history(history_id: str, user_id: str) -> bool:
         return False
     except Exception as e:
         raise Exception(f"Failed to delete history item: {str(e)}")
+
+
+def check_scan_limit(user_id: str, type: str, max_scans: int = 1) -> bool:
+    """
+    Checks if a user has exceeded the scan limit for a specific category in the last 24 hours.
+    Returns True if the limit is exceeded, False otherwise.
+    """
+    try:
+        now = datetime.datetime.now(datetime.timezone.utc)
+        one_day_ago = (now - datetime.timedelta(days=1)).isoformat()
+        
+        docs = db.collection("history").where("user_id", "==", user_id).stream()
+        
+        count = 0
+        for doc in docs:
+            data = doc.to_dict()
+            if data.get("type") == type:
+                created_at_str = data.get("created_at")
+                if created_at_str and created_at_str >= one_day_ago:
+                    count += 1
+                
+        return count >= max_scans
+    except Exception as e:
+        # Allow if database fails to query to avoid blocking users
+        return False

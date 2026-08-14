@@ -195,7 +195,7 @@ export default function SkincarePage() {
     } catch (error) {
       console.error("Analysis Error:", error);
       clearInterval(progressInterval);
-      setScanMessage("Error analyzing image. Please try again.");
+      alert(error.message || "Error analyzing image. Please try again.");
     } finally {
       setTimeout(() => {
         setIsScanning(false);

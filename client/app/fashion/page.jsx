@@ -182,7 +182,14 @@ export default function FashionPage() {
         })
       });
 
-      if (!res.ok) throw new Error("Failed to curate fashion concepts.");
+      if (!res.ok) {
+        let errMsg = "Failed to curate fashion concepts.";
+        try {
+          const errData = await res.json();
+          if (errData.detail) errMsg = errData.detail;
+        } catch (e) {}
+        throw new Error(errMsg);
+      }
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder("utf-8");

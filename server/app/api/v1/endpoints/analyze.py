@@ -11,6 +11,7 @@ from app.models.analyze import (
 )
 from app.services import skincare_service, fashion_service, hair_service, history_service
 from app.core.dependencies import get_current_user
+from app.core.config import settings
 
 router = APIRouter(prefix="/analyze", tags=["AI Analysis"])
 
@@ -23,6 +24,12 @@ async def skincare_analysis(body: AnalyzeRequest, current_user = Depends(get_cur
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Endpoint expects type parameter to be 'skincare'."
+        )
+    # Enforce scan limits
+    if history_service.check_scan_limit(current_user.id, type="skincare", max_scans=settings.SKINCARE_SCAN_LIMIT):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Since you are currently in a free tier, you can only perform 1 skincare scan every 24 hours. Please wait 1 day for your daily limit to refresh."
         )
     try:
         # Run skin analysis (passing the body context dictionary)
@@ -56,6 +63,12 @@ async def fashion_analysis(body: AnalyzeRequest, current_user = Depends(get_curr
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Endpoint expects type parameter to be 'fashion'."
+        )
+    # Enforce scan limits
+    if history_service.check_scan_limit(current_user.id, type="fashion", max_scans=settings.FASHION_SCAN_LIMIT):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Since you are currently in a free tier, you can only perform 1 style curation every 24 hours. Please wait 1 day for your daily limit to refresh."
         )
         
     async def event_generator():
@@ -92,6 +105,12 @@ async def hair_analysis(body: AnalyzeRequest, current_user = Depends(get_current
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Endpoint expects type parameter to be 'hair'."
+        )
+    # Enforce scan limits
+    if history_service.check_scan_limit(current_user.id, type="hair", max_scans=settings.HAIR_SCAN_LIMIT):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Since you are currently in a free tier, you can only perform 1 hair analysis every 24 hours. Please wait 1 day for your daily limit to refresh."
         )
     try:
         # Run hair analysis
