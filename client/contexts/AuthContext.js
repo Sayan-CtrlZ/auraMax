@@ -7,7 +7,14 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
-  signOut as firebaseSignOut 
+  signOut as firebaseSignOut,
+  linkWithPopup,
+  linkWithCredential,
+  EmailAuthProvider,
+  GoogleAuthProvider,
+  updatePassword,
+  reauthenticateWithCredential,
+  sendPasswordResetEmail
 } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 
@@ -69,6 +76,79 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const linkGoogle = async () => {
+    if (!auth.currentUser) throw new Error("No user currently logged in.");
+    try {
+      const result = await linkWithPopup(auth.currentUser, googleProvider);
+      setUser(result.user);
+      return result.user;
+    } catch (error) {
+      console.error("Error linking Google provider", error);
+      throw error;
+    }
+  };
+
+  const linkEmail = async (password) => {
+    if (!auth.currentUser) throw new Error("No user currently logged in.");
+    if (!auth.currentUser.email) throw new Error("Current user does not have an email address associated.");
+    try {
+      const credential = EmailAuthProvider.credential(auth.currentUser.email, password);
+      const result = await linkWithCredential(auth.currentUser, credential);
+      setUser(result.user);
+      return result.user;
+    } catch (error) {
+      console.error("Error linking Email provider", error);
+      throw error;
+    }
+  };
+
+  const changePassword = async (newPassword) => {
+    if (!auth.currentUser) throw new Error("No user currently logged in.");
+    try {
+      await updatePassword(auth.currentUser, newPassword);
+    } catch (error) {
+      console.error("Error updating password", error);
+      throw error;
+    }
+  };
+
+  const reauthenticateUser = async (currentPassword) => {
+    if (!auth.currentUser) throw new Error("No user currently logged in.");
+    if (!auth.currentUser.email) throw new Error("Current user does not have an email address associated.");
+    try {
+      const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
+      const result = await reauthenticateWithCredential(auth.currentUser, credential);
+      setUser(result.user);
+      return result.user;
+    } catch (error) {
+      console.error("Error reauthenticating user", error);
+      throw error;
+    }
+  };
+
+  const sendResetPassword = async (email) => {
+    try {
+      await sendPasswordResetEmail(auth, email);
+    } catch (error) {
+      console.error("Error sending password reset email", error);
+      throw error;
+    }
+  };
+
+  const linkPendingCredential = async (email, password, pendingCredential) => {
+    try {
+      // 1. Sign in with email and password first
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      // 2. Link Google credential
+      const result = await linkWithCredential(userCredential.user, pendingCredential);
+      setUser(result.user);
+      return result.user;
+    } catch (error) {
+      console.error("Error linking pending credential", error);
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -76,7 +156,13 @@ export function AuthProvider({ children }) {
       signInWithGoogle, 
       signUpWithEmail, 
       signInWithEmail, 
-      signOut 
+      signOut,
+      linkGoogle,
+      linkEmail,
+      changePassword,
+      reauthenticateUser,
+      sendResetPassword,
+      linkPendingCredential
     }}>
       {children}
     </AuthContext.Provider>
@@ -84,4 +170,5 @@ export function AuthProvider({ children }) {
 }
 
 export const useAuth = () => useContext(AuthContext);
+
 

@@ -48,6 +48,7 @@ export default function Navbar() {
     { name: "Style Guide", href: "/fashion" },
     { name: "Hair Planner", href: "/hair" },
     { name: "History", href: "/history" },
+    { name: "Settings", href: "/settings" },
   ];
 
   const loggedOutLinks = [
